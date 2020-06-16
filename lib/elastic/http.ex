@@ -1,6 +1,4 @@
 defmodule Elastic.HTTP do
-  alias Elastic.AWS
-
   @moduledoc ~S"""
   Used to make raw calls to Elastic Search.
 
@@ -18,10 +16,10 @@ defmodule Elastic.HTTP do
 
   ```
     {:ok, 200,
-     %{"_shards" => %{"failed" => 0, "successful" => 5, "total" => 5},
-       "hits" => %{"hits" => [%{"_id" => "1", "_index" => "answer", "_score" => 1.0,
+      %{"_shards" => %{"failed" => 0, "successful" => 5, "total" => 5},
+        "hits" => %{"hits" => [%{"_id" => "1", "_index" => "answer", "_score" => 1.0,
             "_source" => %{"text" => "I like using Elastic Search"}, "_type" => "answer"}],
-         "max_score" => 1.0, "total" => 1}, "timed_out" => false, "took" => 7}}
+          "max_score" => 1.0, "total" => 1}, "timed_out" => false, "took" => 7}}
   ```
   """
 
@@ -87,70 +85,47 @@ defmodule Elastic.HTTP do
     request(:post, "_bulk", options)
   end
 
-  defp base_url do
-    Elastic.base_url() || "http://localhost:9200"
-  end
+  # Private helpers
 
   defp request(method, url, options) do
-    body = Keyword.get(options, :body, []) |> encode_body
-    timeout = Application.get_env(:elastic, :timeout, 30_000)
-    url = URI.merge(base_url(), url)
-
     options =
-      options
-      |> Keyword.put_new(:headers, Keyword.new())
-      |> Keyword.put(:body, body)
-      |> Keyword.put(:timeout, timeout)
-      |> add_content_type_header
-      |> add_aws_header(method, url, body)
-      |> add_basic_auth
+      []
+      |> Keyword.put(:method, method)
+      |> Keyword.put(:url, url)
+      |> Keyword.put(:headers, Keyword.new())
+      |> Keyword.put(:body, Keyword.get(options, :body, %{}))
+      |> Keyword.put(:query, Keyword.get(options, :query, []))
 
-    apply(HTTPotion, method, [url, options]) |> process_response
-  end
-
-  defp add_content_type_header(options) do
-    headers = Keyword.put(options[:headers], :"Content-Type", "application/json")
-    Keyword.put(options, :headers, headers)
-  end
-
-  def add_aws_header(options, method, url, body) do
-    if AWS.enabled?() do
-      headers =
-        AWS.authorization_headers(
-          method,
-          url,
-          options[:headers],
-          body
-        )
-        |> Enum.reduce(options[:headers], fn {header, value}, headers ->
-          Keyword.put(headers, String.to_atom(header), value)
-        end)
-
-      Keyword.put(options, :headers, headers)
-    else
-      options
-    end
-  end
-
-  def add_basic_auth(options) do
-    basic_auth = Keyword.get(options, :basic_auth, Elastic.basic_auth())
-    Keyword.put(options, :basic_auth, basic_auth)
+    options
+    |> client()
+    |> Tesla.request(options)
+    |> process_response()
   end
 
   defp process_response(response) do
     ResponseHandler.process(response)
   end
 
-  defp encode_body(body) when is_binary(body) do
-    body
+  defp client(options) do
+    middleware =
+      [
+        {Tesla.Middleware.BaseUrl, Application.get_env(:elastic, :base_url, "http://localhost:9200")},
+        {Tesla.Middleware.Timeout, timeout: Application.get_env(:elastic, :timeout, 30_000)},
+        Tesla.Middleware.JSON,
+        Elastic.Middleware.AWSMiddleware,
+      ]
+      |> add_basic_auth_middleware(options)
+
+      Tesla.client(middleware)
   end
 
-  defp encode_body(body) when is_map(body) and body != %{} do
-    {:ok, encoded_body} = Jason.encode(body)
-    encoded_body
-  end
+  def add_basic_auth_middleware(middleware, options) do
+    case Keyword.get(options, :basic_auth, Elastic.basic_auth()) do
+      {username, password} ->
+        [{Tesla.Middleware.BasicAuth, %{username: username, password: password}} | middleware]
 
-  defp encode_body(_body) do
-    ""
+      _ ->
+        middleware
+    end
   end
 end

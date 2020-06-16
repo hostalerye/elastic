@@ -24,7 +24,7 @@ defmodule Elastic.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :httpotion, :aws_auth, :jason]]
+    [applications: [:logger, :tesla, :aws_auth, :jason]]
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
@@ -32,8 +32,9 @@ defmodule Elastic.Mixfile do
 
   defp deps do
     [
-      {:httpotion, "~> 3.1"},
-      {:jason, "~> 1.1.2"},
+      {:tesla, "~> 1.3.0"},
+      {:hackney, "~> 1.16"},
+      {:jason, ">= 1.0.0"},
       {:aws_auth, "~> 0.7.1"},
       {:credo, "~> 1.0", only: [:dev, :test]},
       {:ex_doc, ">= 0.0.0", only: :dev}

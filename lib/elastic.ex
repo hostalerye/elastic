@@ -1,7 +1,7 @@
 defmodule Elastic do
   @moduledoc ~S"""
 
-  Elastic is a thin veneer over HTTPotion to help you talk to your Elastic Search stores.
+  Elastic is a thin veneer over Tesla to help you talk to your Elastic Search stores.
 
   Elastic provides five main ways of talking to the stores:
 
@@ -9,7 +9,7 @@ defmodule Elastic do
   * `Elastic.Index`: Functions for working with indexes.
   * `Elastic.Bulk`: Provides functions for bulk creating or updating documents in an ElasticSearch store.
   * `Elastic.Scroller`: A server which works with Elastic Search's [Scroll API](https://www.elastic.co/guide/en/elasticsearch/reference/2.4/search-request-scroll.html).
-  * `Elastic.HTTP`: A very thin veneer / low-level API over HTTPotion and Jason to make queries to your Elastic Search store.
+  * `Elastic.HTTP`: A very thin veneer / low-level API over Tesla and Jason to make queries to your Elastic Search store.
 
   ## Configuration
 
