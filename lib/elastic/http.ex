@@ -81,8 +81,13 @@ defmodule Elastic.HTTP do
 
   def bulk(options) do
     body = Keyword.get(options, :body, "") <> "\n"
-    options = Keyword.put(options, :body, body)
-    request(:post, "_bulk", options)
+
+    options =
+      options
+      |> Keyword.put(:body, body)
+      |> Keyword.put(:is_bulk?, true)
+
+    request(:post, "/_bulk", options)
   end
 
   # Private helpers
@@ -111,12 +116,41 @@ defmodule Elastic.HTTP do
       [
         {Tesla.Middleware.BaseUrl, Application.get_env(:elastic, :base_url, "http://localhost:9200")},
         {Tesla.Middleware.Timeout, timeout: Application.get_env(:elastic, :timeout, 30_000)},
-        Tesla.Middleware.JSON,
         Elastic.Middleware.AWSMiddleware,
       ]
       |> add_basic_auth_middleware(options)
+      |> add_content_type_middleware_headers(options)
 
       Tesla.client(middleware)
+  end
+
+  defp add_content_type_middleware_headers(middleware, options) do
+    case Keyword.get(options, :is_bulk?, false) do
+      true ->
+        middleware
+        |> add_content_type_middleware_header("application/x-ndjson")
+        |> add_json_middleware(:decode)
+
+      false ->
+        add_json_middleware(middleware, :full)
+    end
+  end
+
+  defp add_content_type_middleware_header(middleware, content_type) do
+    [{Tesla.Middleware.Headers, [{"content-type", content_type}] | middleware]
+  end
+
+  defp add_json_middleware(middleware, type) do
+    case type do
+      :decode ->
+        [Tesla.Middleware.DecodeJson | middleware]
+
+      :encode ->
+        [Tesla.Middleware.EncodeJson  | middleware]
+
+      :full ->
+        [Tesla.Middleware.JSON | middleware]
+    end
   end
 
   def add_basic_auth_middleware(middleware, options) do
