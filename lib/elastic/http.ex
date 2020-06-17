@@ -137,7 +137,7 @@ defmodule Elastic.HTTP do
   end
 
   defp add_content_type_middleware_header(middleware, content_type) do
-    [{Tesla.Middleware.Headers, [{"content-type", content_type}] | middleware]
+    [{Tesla.Middleware.Headers, [{"content-type", content_type}]} | middleware]
   end
 
   defp add_json_middleware(middleware, type) do
