@@ -6,7 +6,7 @@ defmodule Elastic.Mixfile do
     [
       app: :elastic,
       version: @version,
-      elixir: "~> 1.5",
+      elixir: "~> 1.10",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -32,9 +32,9 @@ defmodule Elastic.Mixfile do
 
   defp deps do
     [
-      {:tesla, "~> 1.3.0"},
-      {:hackney, "~> 1.16"},
-      {:jason, ">= 1.0.0"},
+      {:tesla, "~> 1.4.0"},
+      {:hackney, "~> 1.17"},
+      {:jason, ">= 1.2.0"},
       {:aws_auth, "~> 0.7.1"},
       {:credo, "~> 1.0", only: [:dev, :test]},
       {:ex_doc, ">= 0.0.0", only: :dev}
